@@ -1,0 +1,6 @@
+# Python dev artifacts
+.venv
+
+# Caches
+__pycache__
+.pytest_cache
