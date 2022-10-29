@@ -49,13 +49,11 @@ def parse_output(
             f"Error occured in {identifier} with code {results.exit_code}"
         )
     if store_output_callback is not None:
-        store_output_callback(results.outputs)
-        results.outputs = {}
+        store_output_callback(identifier, results.outputs)
     logging.info(f"Activity {identifier} completed successfully")
     return True
 
 
-@activity
 def dbt_run(
     env: str,
     project_location: str,
@@ -63,7 +61,7 @@ def dbt_run(
     prevent_writes: bool = False,
     store_output_callback: Optional[Callable] = None,
 ) -> bool:
-    """dbt_run Implements `dbt run` in Temporal activity
+    """dbt_run Implements `dbt run` for conversion to activity
 
     :param env: Denotes target environment to execute transform against
     :type env: str
@@ -92,7 +90,6 @@ def dbt_run(
     return parse_output(identifier, results, store_output_callback)
 
 
-@activity
 def dbt_docs_generate(
     env: str,
     project_location: str,
@@ -100,7 +97,7 @@ def dbt_docs_generate(
     prevent_writes: bool = False,
     store_output_callback: Optional[Callable] = None,
 ) -> bool:
-    """dbt_run Implements `dbt docs generate` in Temporal activity
+    """dbt_run Implements `dbt docs generate` for conversion to activity
 
     :param env: Denotes target environment to execute transform against
     :type env: str
@@ -129,11 +126,10 @@ def dbt_docs_generate(
     return parse_output(identifier, results, store_output_callback)
 
 
-@activity
 def dbt_debug(
     env: str, project_location: str, profile_location: Optional[str] = None
 ) -> bool:
-    """dbt_run Implements `dbt debug` in Temporal activity
+    """dbt_run Implements `dbt debug` for conversion to activity
 
     :param env: Denotes target environment to execute transform against
     :type env: str
@@ -156,11 +152,10 @@ def dbt_debug(
     return parse_output(identifier, results, None)
 
 
-@activity
 def dbt_clean(
     env: str, project_location: str, profile_location: Optional[str] = None
 ) -> bool:
-    """dbt_run Implements `dbt clean` in Temporal activity
+    """dbt_run Implements `dbt clean` for conversion to activity
 
     :param env: Denotes target environment to execute transform against
     :type env: str
@@ -183,11 +178,10 @@ def dbt_clean(
     return parse_output(identifier, results, None)
 
 
-@activity
 def dbt_deps(
     env: str, project_location: str, profile_location: Optional[str] = None
 ) -> bool:
-    """dbt_run Implements `dbt deps` in Temporal activity
+    """dbt_run Implements `dbt deps` for conversion to activity
 
     :param env: Denotes target environment to execute transform against
     :type env: str
@@ -208,3 +202,79 @@ def dbt_deps(
         prevent_writes=False,
     )
     return parse_output(identifier, results, None)
+
+
+class DbtActivities:
+    def __init__(
+        self,
+        env: str,
+        project_location: str,
+        profile_location: Optional[str] = None,
+        prevent_writes: bool = False,
+        store_output_callback: Optional[Callable] = None,
+    ) -> None:
+        """DbtActivities Converts dbt activity steps into Temporal activities
+
+        This is used to separate out the core DBT activity abstractions and the
+        Temporal interface used to link them up. In other words, this class exists
+        because I forgot about restrictions on non-serialisable variables and
+        async functions.
+
+        :param env: Denotes target environment to execute transform against
+        :type env: str
+        :param project_location: Relative filepath to the DBT project
+        :type project_location: str
+        :param profile_location: Filepath for DBT's `profile.yaml`, defaults to None
+        :type profile_location: Optional[str], optional
+        :return: Returns a true value denoting the success of the run
+        :rtype: bool
+        """
+        self.env = env
+        self.project_location = project_location
+        self.profile_location = profile_location
+        self.prevent_writes = prevent_writes
+        self.store_output_callback = store_output_callback
+
+    @activity.defn(name="dbt_run")
+    async def run(self) -> bool:
+        return dbt_run(
+            self.env,
+            self.project_location,
+            self.profile_location,
+            self.prevent_writes,
+            self.store_output_callback,
+        )
+
+    @activity.defn(name="dbt_docs_generate")
+    async def docs_generate(self) -> bool:
+        return dbt_docs_generate(
+            self.env,
+            self.project_location,
+            self.profile_location,
+            self.prevent_writes,
+            self.store_output_callback,
+        )
+
+    @activity.defn(name="dbt_debug")
+    async def debug(self) -> bool:
+        return dbt_debug(
+            self.env,
+            self.project_location,
+            self.profile_location,
+        )
+
+    @activity.defn(name="dbt_clean")
+    async def clean(self) -> bool:
+        return dbt_clean(
+            self.env,
+            self.project_location,
+            self.profile_location,
+        )
+
+    @activity.defn(name="dbt_deps")
+    async def deps(self) -> bool:
+        return dbt_deps(
+            self.env,
+            self.project_location,
+            self.profile_location,
+        )

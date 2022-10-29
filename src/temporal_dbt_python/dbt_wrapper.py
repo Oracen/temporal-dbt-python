@@ -2,7 +2,6 @@ import io
 import traceback
 import warnings
 from contextlib import redirect_stdout
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -12,6 +11,8 @@ from dbt.exceptions import Exception as dbtException
 from dbt.logger import log_manager
 from dbt.main import handle_and_check
 from dbt.utils import ExitCodes
+
+from temporal_dbt_python.dto import DbtResults
 
 
 class FileCapture:
@@ -23,13 +24,6 @@ class FileCapture:
         """Stream interceptior that redirects file writes to an internal buffer"""
         key = Path(path).stem
         self.buffer[key] = contents
-
-
-@dataclass
-class DbtResults:
-    exit_code: int
-    log_string: str
-    outputs: Dict[str, Dict[str, Any]]
 
 
 def invoke_dbt(args: List[str]) -> int:
