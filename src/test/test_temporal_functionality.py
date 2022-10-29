@@ -2,4 +2,5 @@ import unittest
 
 
 class TestTemporalFunctionality(unittest.TestCase):
-    pass
+    def test_activity_dbt_run(self):
+        pass

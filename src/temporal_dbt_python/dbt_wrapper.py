@@ -47,9 +47,11 @@ def invoke_dbt(args: List[str]) -> int:
 
 
 def dbt_handler(
+    env: str,
     project_location: str,
     dbt_commands: List[str],
     profile_location: Optional[str] = None,
+    prevent_writes: bool = False,
 ) -> DbtResults:
     """Wrapper interface to the DBT API"""
     import dbt.clients.system as dbt_system  # Limited context
@@ -57,18 +59,27 @@ def dbt_handler(
     # Set up monkey patch to capture file writes
     file_capture = FileCapture()
 
-    dbt_system.write_file = file_capture.write_file
+    if prevent_writes:
+        file_capture = FileCapture()
+        dbt_system.write_file = file_capture.write_file
 
     # STDOUT capture
     warnings.filterwarnings("ignore", category=DeprecationWarning, module="logbook")
     # log_manager._file_handler.disabled = True
     handle = io.StringIO()
 
-    args = dbt_commands + ["--project-dir", project_location]
+    args = dbt_commands + [
+        "--target",
+        env,
+        "--project-dir",
+        project_location,
+    ]
     if profile_location is not None:
         args.extend(["--profiles-dir", profile_location])
 
     # Reproduce DBT call interface with printout redirect
     with log_manager.applicationbound(), redirect_stdout(handle):
         exit_code = invoke_dbt(args)
-    return DbtResults(exit_code, handle.getvalue(), file_capture.buffer)
+    return DbtResults(
+        exit_code, handle.getvalue(), file_capture.buffer if prevent_writes else {}
+    )
