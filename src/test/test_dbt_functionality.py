@@ -55,7 +55,7 @@ class TestDbtFunctionality(unittest.TestCase):
     def test_dbt_handler_on_success(self, mock_invoke):
         from temporal_dbt_python.dbt_wrapper import dbt_handler
 
-        results = dbt_handler("./test", ["run"])
+        results = dbt_handler("dev", "./test", ["run"], prevent_writes=True)
         self.assertEqual(results.exit_code, 0)
         self.assertEqual(results.log_string, "1\n2\n")
         self.assertIn("test", results.outputs)
@@ -67,7 +67,7 @@ class TestDbtFunctionality(unittest.TestCase):
     def test_dbt_handler_on_fail(self, mock_invoke):
         from temporal_dbt_python.dbt_wrapper import dbt_handler
 
-        results = dbt_handler("./test", ["run"])
+        results = dbt_handler("dev", "./test", ["run"], prevent_writes=True)
         self.assertEqual(results.exit_code, 1)
         self.assertEqual(results.log_string, "a\nb\n")
         self.assertIn("test", results.outputs)
