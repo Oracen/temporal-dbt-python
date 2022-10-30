@@ -311,10 +311,10 @@ class DbtActivities:
         )
 
 
-def create_notification_callback(
-    callback_name: str, alert_callback: Callable[[str, Dict], None]
+def _wrap_notification(
+    callback_name: str, alert_callback: Callable[[str], None]
 ) -> Callable[[str, Dict], Awaitable[None]]:
-    """create_notification_callback Wraps notification callback for success or failure
+    """_wrap_notification Wraps notification callback for success or failure
 
     :param identifier: A string indicating where in the workflow the alert is raised
     :type identifier: str
@@ -333,3 +333,28 @@ def create_notification_callback(
         return
 
     return callback
+
+
+def create_notifications(
+    alert_error_callback: Optional[Callable[[str], None]] = None,
+    alert_success_callback: Optional[Callable[[str], None]] = None,
+) -> Dict[str, Callable[[str], None]]:
+    """create_notifications Converts notification callbacks into temporal activities
+
+    :param alert_error_callback: Callback in case of error, defaults to None
+    :type alert_error_callback: Optional[Callable[[str], None]], optional
+    :param alert_success_callback: Callback for success, defaults to None
+    :type alert_success_callback: Optional[Callable[[str], None]], optional
+    :return: A dictionary containing the wrapped callbacks
+    :rtype: Dict[str, Callable[[str], None]]
+    """
+    activities = {}
+    if alert_error_callback is not None:
+        activities["alert_error_activity"] = _wrap_notification(
+            "error_callback", alert_error_callback
+        )
+    if alert_success_callback is not None:
+        activities["alert_success_activity"] = _wrap_notification(
+            "success_callback", alert_success_callback
+        )
+    return activities

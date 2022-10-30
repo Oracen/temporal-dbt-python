@@ -1,10 +1,12 @@
+from datetime import timedelta
 from pathlib import Path
 from typing import Awaitable, Callable, Dict, Optional
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
+from temporalio.exceptions import ActivityError, ApplicationError
 
-from temporal_dbt_python.activities import DbtActivities, create_notification_callback
+from temporal_dbt_python.activities import DbtActivities
 from temporal_dbt_python.dto import OperationRequest
 
 
@@ -12,13 +14,15 @@ from temporal_dbt_python.dto import OperationRequest
 class DbtRefreshWorkflow:
     activity_mgr: DbtActivities
 
-    def __init__(
-        self,
+    @classmethod
+    def configure(
+        cls,
         n_retries: int,
+        start_to_close: int,
         activity_mgr: DbtActivities,
-        alert_error_callback: Optional[Callable[[str], bool]] = None,
-        alert_success_callback: Optional[Callable[[str], bool]] = None,
-    ) -> None:
+        alert_error_activity: Optional[Callable[[str], bool]] = None,
+        alert_success_activity: Optional[Callable[[str], bool]] = None,
+    ):
         """DbtRefreshWorkflow Executes basic DBT refresh workflow.
 
         Due to no `temporalio` support for sessions, this workflow should be executed
@@ -36,30 +40,40 @@ class DbtRefreshWorkflow:
         :param store_output_callback: Allows export of DBT artifacts to external
             sources, defaults to None
         :type store_output_callback: Optional[Callable], optional
-        :param alert_error_callback: Notifies in case of activity failure, defaults to
+        :param alert_error_activity: Notifies in case of activity failure, defaults to
             None
-        :type alert_error_callback: Optional[Callable], optional
-        :param alert_success_callback: Notifies on workflow success, defaults to None
-        :type alert_success_callback: Optional[Callable], optional
+        :type alert_error_activity: Optional[Callable], optional
+        :param alert_success_activity: Notifies on workflow success, defaults to None
+        :type alert_success_activity: Optional[Callable], optional
         :return: Returns a true value denoting the success of the run
         :rtype: bool
         """
-        self.n_retries = int
-        self.activity_mgr = activity_mgr
-        self.alert_error_activity = (
-            create_notification_callback("error_callback", alert_error_callback)
-            if alert_error_callback is not None
-            else alert_error_callback
-        )
-        self.alert_success_activity = (
-            create_notification_callback("error_callback", alert_success_callback)
-            if alert_error_callback is not None
-            else alert_error_callback
-        )
-        self.retry_policy = RetryPolicy(maximum_attempts=n_retries)
+        cls.n_retries = n_retries
+        cls.start_to_close = timedelta(seconds=start_to_close)
+        cls.activity_mgr = activity_mgr
+        cls.alert_error_activity = alert_error_activity
+        cls.alert_success_activity = alert_success_activity
+        cls.retry_policy = RetryPolicy(maximum_attempts=n_retries)
+        return cls
 
+    @workflow.run
     async def run(self, run_params: OperationRequest):
-        pass
+        tasks = [
+            ("debug", self.activity_mgr.debug),
+        ]
+        for name, activity in tasks:
+            try:
+                await workflow.execute_activity(
+                    activity,
+                    run_params,
+                    retry_policy=self.retry_policy,
+                    start_to_close_timeout=self.start_to_close,
+                )
+            except ActivityError as ae:
+                await self.alert_error(run_params, name)
+                raise ApplicationError(f"Workflow failed at step {name}: {str(ae)}")
+        self.alert_success()
+        return
 
     async def _alert(
         self,
@@ -75,22 +89,22 @@ class DbtRefreshWorkflow:
 
         project = Path(run_params.project_location).stem  # IDs which project
         env = run_params.env  # IDs which profile target we're hititng
-        run_id = workflow.info().run_id  # IDs the specific run ID for follow up
-        identifier = f"{project}--{env}--{step_id}--{run_id}"
+        wfid = workflow.info().workflow_id  # IDs the specific workflow for follow up
+        identifier = f"{wfid}--{project}--{env}--{step_id}"
         return await workflow.execute_activity(
             alert_fn,
             identifier,
-            start_to_close_timeout=start_to_close,
+            start_to_close_timeout=timedelta(start_to_close),
             retry_policy=RetryPolicy(maximum_attempts=max_attempts),
         )
 
-    async def alert_success(self, run_params: OperationRequest, step_id: str):
+    async def alert_success(self, run_params: OperationRequest):
         """alert_success Sends notification to confirm succesful execution of pipeline
 
         :param step_id: String denoting step of the workflow
         :type step_id: str
         """
-        await self._alert(run_params, step_id, self.alert_success_activity)
+        await self._alert(run_params, "complete", self.alert_success_activity)
 
     async def alert_error(self, run_params: OperationRequest, step_id: str):
         """alert_error Raises more durable notification in case of error
