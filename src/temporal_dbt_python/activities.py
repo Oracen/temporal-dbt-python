@@ -5,6 +5,7 @@ from typing import Awaitable, Callable, Dict, Optional
 from temporalio import activity
 
 from temporal_dbt_python.dbt_wrapper import DbtResults, dbt_handler
+from temporal_dbt_python.dto import OperationRequest
 from temporal_dbt_python.exceptions import WorkflowExecutionError
 
 
@@ -238,9 +239,6 @@ def dbt_test(
 class DbtActivities:
     def __init__(
         self,
-        env: str,
-        project_location: str,
-        profile_location: Optional[str] = None,
         prevent_writes: bool = False,
         store_output_callback: Optional[Callable[[str, Dict], bool]] = None,
     ) -> None:
@@ -251,74 +249,65 @@ class DbtActivities:
         because I forgot about restrictions on non-serialisable variables and
         async functions.
 
-        :param env: Denotes target environment to execute transform against
-        :type env: str
-        :param project_location: Relative filepath to the DBT project
-        :type project_location: str
-        :param profile_location: Filepath for DBT's `profile.yaml`, defaults to None
-        :type profile_location: Optional[str], optional
         :param store_output_callback: Allows export of DBT artifacts to external
             sources, defaults to None
         :type store_output_callback: Optional[Callable], optional
         :return: Returns a true value denoting the success of the run
         :rtype: bool
         """
-        self.env = env
-        self.project_location = project_location
-        self.profile_location = profile_location
         self.prevent_writes = prevent_writes
         self.store_output_callback = store_output_callback
 
     @activity.defn(name="dbt_run")
-    async def run(self) -> bool:
+    async def run(self, run_params: OperationRequest) -> bool:
         return dbt_run(
-            self.env,
-            self.project_location,
-            self.profile_location,
+            run_params.env,
+            run_params.project_location,
+            run_params.profile_location,
             self.prevent_writes,
             self.store_output_callback,
         )
 
     @activity.defn(name="dbt_docs_generate")
-    async def docs_generate(self) -> bool:
+    async def docs_generate(self, run_params: OperationRequest) -> bool:
         return dbt_docs_generate(
-            self.env,
-            self.project_location,
-            self.profile_location,
+            run_params.env,
+            run_params.project_location,
+            run_params.profile_location,
             self.prevent_writes,
             self.store_output_callback,
         )
 
     @activity.defn(name="dbt_debug")
-    async def debug(self) -> bool:
+    async def debug(self, run_params: OperationRequest) -> bool:
         return dbt_debug(
-            self.env,
-            self.project_location,
-            self.profile_location,
+            run_params.env,
+            run_params.project_location,
+            run_params.profile_location,
         )
 
     @activity.defn(name="dbt_clean")
-    async def clean(self) -> bool:
+    async def clean(self, run_params: OperationRequest) -> bool:
         return dbt_clean(
-            self.env,
-            self.project_location,
-            self.profile_location,
+            run_params.env,
+            run_params.project_location,
+            run_params.profile_location,
         )
 
     @activity.defn(name="dbt_deps")
-    async def deps(self) -> bool:
+    async def deps(self, run_params: OperationRequest) -> bool:
         return dbt_deps(
-            self.env,
-            self.project_location,
-            self.profile_location,
+            run_params.env,
+            run_params.project_location,
+            run_params.profile_location,
         )
 
     @activity.defn(name="dbt_test")
-    async def test(self) -> bool:
+    async def test(self, run_params: OperationRequest) -> bool:
         return dbt_test(
-            self.env,
-            self.project_location,
-            self.profile_location,
+            run_params.env,
+            run_params.project_location,
+            run_params.profile_location,
         )
 
 
