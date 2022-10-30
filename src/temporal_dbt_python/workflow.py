@@ -59,8 +59,8 @@ class DbtRefreshWorkflow:
     @workflow.run
     async def run(self, run_params: OperationRequest):
         tasks = [
-            ("deps", self.activity_mgr.deps),
             ("debug", self.activity_mgr.debug),
+            ("deps", self.activity_mgr.deps),
             ("test_source", self.activity_mgr.test_source),
             ("run", self.activity_mgr.run),
             ("test", self.activity_mgr.test),
