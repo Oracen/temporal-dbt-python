@@ -31,9 +31,7 @@ class TestDbtFunctionality(unittest.TestCase):
         file_capture.write_file("./local/file/example_2.json", {})
         self.assertSetEqual(set(file_capture.buffer.keys()), {"example", "example_2"})
 
-    @mock.patch(
-        "temporal_dbt_python.dbt_wrapper.handle_and_check", return_value=(None, True)
-    )
+    @mock.patch("dbt.main.handle_and_check", return_value=(None, True))
     def test_invoke_dbt_success(self, mock_dbt_call):
         from temporal_dbt_python.dbt_wrapper import invoke_dbt
 
@@ -41,9 +39,7 @@ class TestDbtFunctionality(unittest.TestCase):
         self.assertEqual(invoke_dbt([]), 0)
 
     @mock.patch("dbt.events.functions.fire_event")
-    @mock.patch(
-        "temporal_dbt_python.dbt_wrapper.handle_and_check", side_effect=BaseException
-    )
+    @mock.patch("dbt.main.handle_and_check", side_effect=BaseException)
     def test_invoke_dbt_exception(self, mock_dbt_call, mock_event):
         from temporal_dbt_python.dbt_wrapper import invoke_dbt
 

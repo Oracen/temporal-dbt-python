@@ -5,14 +5,15 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from dbt import main as dbt_main
 from dbt.events.functions import fire_event
 from dbt.events.types import MainEncounteredError, MainStackTrace
 from dbt.exceptions import Exception as dbtException
-from dbt.logger import log_manager
-from dbt.main import handle_and_check
 from dbt.utils import ExitCodes
 
 from temporal_dbt_python.dto import DbtResults
+
+dbt_main.log_manager.set_path(None)
 
 
 class FileCapture:
@@ -29,7 +30,7 @@ class FileCapture:
 def invoke_dbt(args: List[str]) -> int:
     """Isolate DBT call to util function"""
     try:
-        _, succeeded = handle_and_check(args)
+        _, succeeded = dbt_main.handle_and_check(args)
         exit_code = (ExitCodes.Success if succeeded else ExitCodes.ModelError).value
 
     except BaseException as e:
@@ -48,31 +49,49 @@ def dbt_handler(
     prevent_writes: bool = False,
 ) -> DbtResults:
     """Wrapper interface to the DBT API"""
-    import dbt.clients.system as dbt_system  # Limited context
+    from logbook import Handler
+
+    Handler.blackhole = True
+    # from dbt.logger import GLOBAL_LOGGER, log_manager, logger
+
+    # GLOBAL_LOGGER.disable()
+    # logger.disable()
+    # log_manager.set_path(None)
+    # dbt_main.log_manager.set_path(None)
 
     # Set up monkey patch to capture file writes
     file_capture = FileCapture()
 
     if prevent_writes:
+        import dbt.clients.system as dbt_system  # Limited context
+
         file_capture = FileCapture()
         dbt_system.write_file = file_capture.write_file
 
     # STDOUT capture
     warnings.filterwarnings("ignore", category=DeprecationWarning, module="logbook")
-    # log_manager._file_handler.disabled = True
     handle = io.StringIO()
+    # dbt_main.log_manager._file_handler = None
 
-    args = dbt_commands + [
-        "--target",
-        env,
-        "--project-dir",
-        project_location,
-    ]
+    args = (
+        # [
+        #     "--log-format",
+        #     "json",
+        # ]
+        # + dbt_commands
+        dbt_commands
+        + [
+            "--target",
+            env,
+            "--project-dir",
+            project_location,
+        ]
+    )
     if profile_location is not None:
         args.extend(["--profiles-dir", profile_location])
 
     # Reproduce DBT call interface with printout redirect
-    with log_manager.applicationbound(), redirect_stdout(handle):
+    with redirect_stdout(handle):
         exit_code = invoke_dbt(args)
     return DbtResults(
         exit_code, handle.getvalue(), file_capture.buffer if prevent_writes else {}

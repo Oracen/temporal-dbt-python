@@ -4,3 +4,7 @@
 # Caches
 __pycache__
 .pytest_cache
+
+# DBT Artifacts, take a look at dbt.events.functions.py if you want to
+# know why it will be easier to just ignore logfiles
+logs

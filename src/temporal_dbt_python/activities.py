@@ -84,9 +84,9 @@ def dbt_run(
     identifier = log_start_activity(env, "dbt_run", project_location)
     results = dbt_handler(
         env,
-        profile_location,
-        ["run", "--fail-fast"],
         project_location,
+        ["run", "--fail-fast"],
+        profile_location,
         prevent_writes=prevent_writes,
     )
     return parse_output(identifier, results, store_output_callback)
@@ -120,9 +120,9 @@ def dbt_docs_generate(
     identifier = log_start_activity(env, "dbt_docs_generate", project_location)
     results = dbt_handler(
         env,
-        profile_location,
-        ["docs", "generate"],
         project_location,
+        ["docs", "generate"],
+        profile_location,
         prevent_writes=prevent_writes,
     )
     return parse_output(identifier, results, store_output_callback)
@@ -146,9 +146,9 @@ def dbt_debug(
     identifier = log_start_activity(env, "dbt_debug", project_location)
     results = dbt_handler(
         env,
-        profile_location,
-        ["debug"],
         project_location,
+        ["debug"],
+        profile_location,
         prevent_writes=False,
     )
     return parse_output(identifier, results, None)
@@ -172,9 +172,9 @@ def dbt_clean(
     identifier = log_start_activity(env, "dbt_clean", project_location)
     results = dbt_handler(
         env,
-        profile_location,
-        ["clean"],
         project_location,
+        ["clean"],
+        profile_location,
         prevent_writes=False,
     )
     return parse_output(identifier, results, None)
@@ -198,9 +198,9 @@ def dbt_deps(
     identifier = log_start_activity(env, "dbt_deps", project_location)
     results = dbt_handler(
         env,
-        profile_location,
-        ["deps"],
         project_location,
+        ["deps"],
+        profile_location,
         prevent_writes=False,
     )
     return parse_output(identifier, results, None)
@@ -228,9 +228,9 @@ def dbt_test(
     identifier = log_start_activity(env, "dbt_test", project_location)
     results = dbt_handler(
         env,
-        profile_location,
-        ["test"] + additional_flags,
         project_location,
+        ["test"] + additional_flags,
+        profile_location,
         prevent_writes=False,
     )
     return parse_output(identifier, results, None)
@@ -308,6 +308,15 @@ class DbtActivities:
             run_params.env,
             run_params.project_location,
             run_params.profile_location,
+        )
+
+    @activity.defn(name="dbt_test_source")
+    async def test_source(self, run_params: OperationRequest) -> bool:
+        return dbt_test(
+            run_params.env,
+            run_params.project_location,
+            run_params.profile_location,
+            sources_only=True,
         )
 
 

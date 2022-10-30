@@ -19,6 +19,7 @@ def create_worker(
         activity_mgr.clean,
         activity_mgr.deps,
         activity_mgr.test,
+        activity_mgr.test_source,
     ]
 
     activities.extend([] if additional_tasks is None else additional_tasks)

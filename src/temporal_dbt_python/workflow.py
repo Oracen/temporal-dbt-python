@@ -60,20 +60,31 @@ class DbtRefreshWorkflow:
     async def run(self, run_params: OperationRequest):
         tasks = [
             ("debug", self.activity_mgr.debug),
+            ("deps", self.activity_mgr.deps),
+            ("test_source", self.activity_mgr.test_source),
+            ("run", self.activity_mgr.run),
+            ("test", self.activity_mgr.test),
         ]
-        for name, activity in tasks:
-            try:
+
+        try:
+            for name, activity in tasks:
                 await workflow.execute_activity(
                     activity,
                     run_params,
                     retry_policy=self.retry_policy,
                     start_to_close_timeout=self.start_to_close,
                 )
-            except ActivityError as ae:
-                await self.alert_error(run_params, name)
-                raise ApplicationError(f"Workflow failed at step {name}: {str(ae)}")
-        self.alert_success()
-        return
+            await self.alert_success(run_params)
+        except ActivityError as ae:
+            await self.alert_error(run_params, name)
+            raise ApplicationError(f"Workflow failed at step {name}: {str(ae)}")
+        finally:
+            await workflow.execute_activity(
+                self.activity_mgr.clean,
+                run_params,
+                retry_policy=self.retry_policy,
+                start_to_close_timeout=self.start_to_close,
+            )
 
     async def _alert(
         self,
