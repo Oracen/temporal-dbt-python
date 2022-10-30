@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 from typing import Awaitable, Callable, Dict, Optional
 
@@ -210,7 +211,8 @@ def dbt_test(
     env: str,
     project_location: str,
     profile_location: Optional[str] = None,
-    sources_only: bool = False,
+    staging_only: bool = False,
+    staging_name: str = "staging",
 ) -> bool:
     """dbt_run Implements `dbt deps` for conversion to activity
 
@@ -220,10 +222,14 @@ def dbt_test(
     :type project_location: str
     :param profile_location: Filepath for DBT's `profile.yaml`, defaults to None
     :type profile_location: Optional[str], optional
+    :param project_location: Test only the sources
+    :type project_location: str
+    :param project_location: Which model the staging systems lie under
+    :type project_location: str
     :return: Returns a true value denoting the success of the run
     :rtype: bool
     """
-    additional_flags = ["--select", "source:*"] if sources_only else []
+    additional_flags = ["--select", staging_name] if staging_only else []
 
     identifier = log_start_activity(env, "dbt_test", project_location)
     results = dbt_handler(
@@ -239,8 +245,10 @@ def dbt_test(
 class DbtActivities:
     def __init__(
         self,
+        navigation_root: Path,
         prevent_writes: bool = False,
         store_output_callback: Optional[Callable[[str, Dict], bool]] = None,
+        staging_dir_name: str = "staging",
     ) -> None:
         """DbtActivities Converts dbt activity steps into Temporal activities
 
@@ -255,11 +263,18 @@ class DbtActivities:
         :return: Returns a true value denoting the success of the run
         :rtype: bool
         """
+        self.navigation_root = navigation_root
         self.prevent_writes = prevent_writes
         self.store_output_callback = store_output_callback
+        self.staging_dir_name = staging_dir_name
+
+    def _reset_path(self):
+        """Written to account for the fact DBT jumps as part of the install process"""
+        os.chdir(self.navigation_root)
 
     @activity.defn(name="dbt_run")
     async def run(self, run_params: OperationRequest) -> bool:
+        self._reset_path()
         return dbt_run(
             run_params.env,
             run_params.project_location,
@@ -270,6 +285,7 @@ class DbtActivities:
 
     @activity.defn(name="dbt_docs_generate")
     async def docs_generate(self, run_params: OperationRequest) -> bool:
+        self._reset_path()
         return dbt_docs_generate(
             run_params.env,
             run_params.project_location,
@@ -280,6 +296,7 @@ class DbtActivities:
 
     @activity.defn(name="dbt_debug")
     async def debug(self, run_params: OperationRequest) -> bool:
+        self._reset_path()
         return dbt_debug(
             run_params.env,
             run_params.project_location,
@@ -288,6 +305,7 @@ class DbtActivities:
 
     @activity.defn(name="dbt_clean")
     async def clean(self, run_params: OperationRequest) -> bool:
+        self._reset_path()
         return dbt_clean(
             run_params.env,
             run_params.project_location,
@@ -296,14 +314,16 @@ class DbtActivities:
 
     @activity.defn(name="dbt_deps")
     async def deps(self, run_params: OperationRequest) -> bool:
+        self._reset_path()
         return dbt_deps(
             run_params.env,
-            run_params.project_location,
+            f"{run_params.project_location}",
             run_params.profile_location,
         )
 
     @activity.defn(name="dbt_test")
     async def test(self, run_params: OperationRequest) -> bool:
+        self._reset_path()
         return dbt_test(
             run_params.env,
             run_params.project_location,
@@ -312,11 +332,13 @@ class DbtActivities:
 
     @activity.defn(name="dbt_test_source")
     async def test_source(self, run_params: OperationRequest) -> bool:
+        self._reset_path()
         return dbt_test(
             run_params.env,
             run_params.project_location,
             run_params.profile_location,
-            sources_only=True,
+            staging_only=True,
+            staging_name=self.staging_dir_name,
         )
 
 

@@ -5,15 +5,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from dbt import main as dbt_main
-from dbt.events.functions import fire_event
-from dbt.events.types import MainEncounteredError, MainStackTrace
-from dbt.exceptions import Exception as dbtException
-from dbt.utils import ExitCodes
-
 from temporal_dbt_python.dto import DbtResults
-
-dbt_main.log_manager.set_path(None)
 
 
 class FileCapture:
@@ -29,14 +21,21 @@ class FileCapture:
 
 def invoke_dbt(args: List[str]) -> int:
     """Isolate DBT call to util function"""
+    from dbt import exceptions
+    from dbt import main as dbt_main
+    from dbt.events import functions, types
+    from dbt.utils import ExitCodes
+
+    dbt_main.log_manager.set_path(None)
     try:
         _, succeeded = dbt_main.handle_and_check(args)
         exit_code = (ExitCodes.Success if succeeded else ExitCodes.ModelError).value
-
     except BaseException as e:
-        fire_event(MainEncounteredError(str(e)))
-        if not isinstance(e, dbtException):
-            fire_event(MainStackTrace(stack_trace=traceback.format_exc()))
+        functions.fire_event(types.MainEncounteredError(str(e)))
+        if not isinstance(e, exceptions.Exception):
+            functions.fire_event(
+                types.MainStackTrace(stack_trace=traceback.format_exc())
+            )
         exit_code = ExitCodes.UnhandledError.value
     return exit_code
 
@@ -52,12 +51,6 @@ def dbt_handler(
     from logbook import Handler
 
     Handler.blackhole = True
-    # from dbt.logger import GLOBAL_LOGGER, log_manager, logger
-
-    # GLOBAL_LOGGER.disable()
-    # logger.disable()
-    # log_manager.set_path(None)
-    # dbt_main.log_manager.set_path(None)
 
     # Set up monkey patch to capture file writes
     file_capture = FileCapture()
@@ -71,20 +64,17 @@ def dbt_handler(
     # STDOUT capture
     warnings.filterwarnings("ignore", category=DeprecationWarning, module="logbook")
     handle = io.StringIO()
-    # dbt_main.log_manager._file_handler = None
-
     args = (
-        # [
-        #     "--log-format",
-        #     "json",
-        # ]
-        # + dbt_commands
-        dbt_commands
+        [
+            #     "--log-format",
+            #     "json",
+        ]
+        + dbt_commands
         + [
-            "--target",
-            env,
             "--project-dir",
             project_location,
+            "--target",
+            env,
         ]
     )
     if profile_location is not None:

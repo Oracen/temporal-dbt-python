@@ -1,5 +1,6 @@
 import asyncio
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from temporal_dbt_python.activities import (
@@ -16,7 +17,8 @@ from temporal_dbt_python.exceptions import WorkflowExecutionError
 
 results_success = DbtResults(0, "log string", {"test": "results"})
 results_fail = DbtResults(1, "log string", {"test": "results"})
-dbt_activities = DbtActivities()
+
+dbt_activities = DbtActivities(Path(__file__).parent)
 
 op_request = OperationRequest("dev", "./test")
 
@@ -70,5 +72,5 @@ class TestTemporalFunctionality(unittest.TestCase):
         self.assertTrue(asyncio.run(dbt_activities.test(op_request)))
 
     def test_activity_dbt_test_source(self, mock_handler):
-        self.assertTrue(dbt_test("dev", "./test", sources_only=True))
+        self.assertTrue(dbt_test("dev", "./test", staging_only=True))
         self.assertTrue(asyncio.run(dbt_activities.test_source(op_request)))

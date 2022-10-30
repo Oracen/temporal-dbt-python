@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+from pathlib import Path
 
 from temporal_dbt_python.activities import DbtActivities, create_notifications
 from temporal_dbt_python.workers import create_worker
@@ -12,9 +13,12 @@ def dummy_callback(input_str):
     return True  # Signals that the callback fired successfully
 
 
+PROJECT_ROOT = Path(__file__).parent.parent
+
+
 async def main(client_address: str, tasks_only: bool = False):
     # Define activities including dummy callbacks
-    activity_mgr = DbtActivities()
+    activity_mgr = DbtActivities(PROJECT_ROOT)
     additional_args = {}
 
     if not tasks_only:
