@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Awaitable, Callable, Dict, Optional
 
 from temporalio import activity
 
@@ -29,7 +29,7 @@ def log_start_activity(env: str, step: str, project_location: str) -> str:
 def parse_output(
     identifier: str,
     results: DbtResults,
-    store_output_callback: Optional[Callable] = None,
+    store_output_callback: Optional[Callable[[str, Dict], bool]] = None,
 ) -> bool:
     """parse_output Convenience wrapper for processing a DBT action's output
 
@@ -43,15 +43,16 @@ def parse_output(
     :return: Boolean denoting success of the parsing
     :rtype: bool
     """
+    completion_success = True
     if results.exit_code != 0:
         logging.error(results.log_string)
         raise WorkflowExecutionError(
             f"Error occured in {identifier} with code {results.exit_code}"
         )
     if store_output_callback is not None:
-        store_output_callback(identifier, results.outputs)
+        completion_success = store_output_callback(identifier, results.outputs)
     logging.info(f"Activity {identifier} completed successfully")
-    return True
+    return completion_success
 
 
 def dbt_run(
@@ -59,7 +60,7 @@ def dbt_run(
     project_location: str,
     profile_location: Optional[str] = None,
     prevent_writes: bool = False,
-    store_output_callback: Optional[Callable] = None,
+    store_output_callback: Optional[Callable[[str, Dict], bool]] = None,
 ) -> bool:
     """dbt_run Implements `dbt run` for conversion to activity
 
@@ -95,7 +96,7 @@ def dbt_docs_generate(
     project_location: str,
     profile_location: Optional[str] = None,
     prevent_writes: bool = False,
-    store_output_callback: Optional[Callable] = None,
+    store_output_callback: Optional[Callable[[str, Dict], bool]] = None,
 ) -> bool:
     """dbt_run Implements `dbt docs generate` for conversion to activity
 
@@ -241,7 +242,7 @@ class DbtActivities:
         project_location: str,
         profile_location: Optional[str] = None,
         prevent_writes: bool = False,
-        store_output_callback: Optional[Callable] = None,
+        store_output_callback: Optional[Callable[[str, Dict], bool]] = None,
     ) -> None:
         """DbtActivities Converts dbt activity steps into Temporal activities
 
@@ -256,6 +257,9 @@ class DbtActivities:
         :type project_location: str
         :param profile_location: Filepath for DBT's `profile.yaml`, defaults to None
         :type profile_location: Optional[str], optional
+        :param store_output_callback: Allows export of DBT artifacts to external
+            sources, defaults to None
+        :type store_output_callback: Optional[Callable], optional
         :return: Returns a true value denoting the success of the run
         :rtype: bool
         """
@@ -316,3 +320,27 @@ class DbtActivities:
             self.project_location,
             self.profile_location,
         )
+
+
+def create_notification_callback(
+    callback_name: str, alert_callback: Callable[[str, Dict], None]
+) -> Callable[[str, Dict], Awaitable[None]]:
+    """create_notification_callback Wraps notification callback for success or failure
+
+    :param identifier: A string indicating where in the workflow the alert is raised
+    :type identifier: str
+    :param alert_callback: Callback function
+    :type alert_callback: Callable[[str, Dict], bool]
+    :return: Boolean denoting success of the callback
+    :rtype: bool
+    """
+
+    @activity.defn(name=callback_name)
+    async def callback(identifier_string: str):
+        if not alert_callback(identifier_string):
+            raise WorkflowExecutionError(
+                f"Notification callback {callback_name} failed to complete"
+            )
+        return
+
+    return callback

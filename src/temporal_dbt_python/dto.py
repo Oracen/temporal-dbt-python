@@ -1,5 +1,12 @@
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+
+
+@dataclass
+class OperationRequest:
+    env: str
+    project_location: str
+    profile_location: Optional[str] = None
 
 
 @dataclass
