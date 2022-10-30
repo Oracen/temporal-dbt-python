@@ -205,7 +205,10 @@ def dbt_deps(
 
 
 def dbt_test(
-    env: str, project_location: str, profile_location: Optional[str] = None
+    env: str,
+    project_location: str,
+    profile_location: Optional[str] = None,
+    sources_only: bool = False,
 ) -> bool:
     """dbt_run Implements `dbt deps` for conversion to activity
 
@@ -218,12 +221,13 @@ def dbt_test(
     :return: Returns a true value denoting the success of the run
     :rtype: bool
     """
+    additional_flags = ["--select", "source:*"] if sources_only else []
 
     identifier = log_start_activity(env, "dbt_test", project_location)
     results = dbt_handler(
         env,
         profile_location,
-        ["test"],
+        ["test"] + additional_flags,
         project_location,
         prevent_writes=False,
     )
