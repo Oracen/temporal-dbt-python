@@ -204,6 +204,32 @@ def dbt_deps(
     return parse_output(identifier, results, None)
 
 
+def dbt_test(
+    env: str, project_location: str, profile_location: Optional[str] = None
+) -> bool:
+    """dbt_run Implements `dbt deps` for conversion to activity
+
+    :param env: Denotes target environment to execute transform against
+    :type env: str
+    :param project_location: Relative filepath to the DBT project
+    :type project_location: str
+    :param profile_location: Filepath for DBT's `profile.yaml`, defaults to None
+    :type profile_location: Optional[str], optional
+    :return: Returns a true value denoting the success of the run
+    :rtype: bool
+    """
+
+    identifier = log_start_activity(env, "dbt_test", project_location)
+    results = dbt_handler(
+        env,
+        profile_location,
+        ["test"],
+        project_location,
+        prevent_writes=False,
+    )
+    return parse_output(identifier, results, None)
+
+
 class DbtActivities:
     def __init__(
         self,
@@ -274,6 +300,14 @@ class DbtActivities:
     @activity.defn(name="dbt_deps")
     async def deps(self) -> bool:
         return dbt_deps(
+            self.env,
+            self.project_location,
+            self.profile_location,
+        )
+
+    @activity.defn(name="dbt_test")
+    async def test(self) -> bool:
+        return dbt_test(
             self.env,
             self.project_location,
             self.profile_location,

@@ -9,6 +9,7 @@ from temporal_dbt_python.activities import (
     dbt_deps,
     dbt_docs_generate,
     dbt_run,
+    dbt_test,
 )
 from temporal_dbt_python.dto import DbtResults
 from temporal_dbt_python.exceptions import WorkflowExecutionError
@@ -61,3 +62,7 @@ class TestTemporalFunctionality(unittest.TestCase):
     def test_activity_dbt_deps(self, mock_handler):
         self.assertTrue(dbt_deps("dev", "./test"))
         self.assertTrue(asyncio.run(dbt_activities.deps()))
+
+    def test_activity_dbt_test(self, mock_handler):
+        self.assertTrue(dbt_test("dev", "./test"))
+        self.assertTrue(asyncio.run(dbt_activities.test()))
