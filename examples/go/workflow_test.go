@@ -3,8 +3,8 @@ package app
 import (
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.temporal.io/sdk/internal"
 	"go.temporal.io/sdk/testsuite"
 )
 
@@ -16,10 +16,10 @@ func Test_Workflow(t *testing.T) {
 	successInput := RunParams{"dev", "./test", nil}
 
 	// Mock activity implementation
+	// env.RegisterActivityWithOptions(MockActivity, )
+	// TODO: Speak to Temporal lads about mocking externally-defined activities
 
-	env.RegisterActivityWithOptions("dbt_debug", internal.RegisterActivityOptions{Name: "dbt_debug"})
-
-	env.OnActivity("dbt_debug").Return(true, nil)
+	env.OnActivity("dbt_debug", mock.Anything, successInput).Return(true, nil)
 
 	env.ExecuteWorkflow(DbtParallelRefreshWorkflow, successInput)
 	require.True(t, env.IsWorkflowCompleted())
