@@ -1,6 +1,6 @@
 # temporal-dbt-python
 
-A Temporal DBT Workflow and worker
+A Temporal Workflow and worker for automating DBT operations
 
 ## Project Description
 
