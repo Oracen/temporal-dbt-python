@@ -58,6 +58,12 @@ class DbtRefreshWorkflow:
 
     @workflow.run
     async def run(self, run_params: OperationRequest):
+        """run The main execution method of the workflow
+
+        :param run_params: Parameters sent by the server
+        :type run_params: OperationRequest
+        :raises ApplicationError: Raises on exceed retry limit after notifying team
+        """
         tasks = [
             ("debug", self.activity_mgr.debug),
             ("deps", self.activity_mgr.deps),

@@ -274,6 +274,7 @@ class DbtActivities:
 
     @activity.defn(name="dbt_run")
     async def run(self, run_params: OperationRequest) -> bool:
+        """Handles calls from the workflow to to `dbt_run` activity"""
         self._reset_path()
         return dbt_run(
             run_params.env,
@@ -285,6 +286,7 @@ class DbtActivities:
 
     @activity.defn(name="dbt_docs_generate")
     async def docs_generate(self, run_params: OperationRequest) -> bool:
+        """Handles calls from the workflow to to `dbt_docs_generate` activity"""
         self._reset_path()
         return dbt_docs_generate(
             run_params.env,
@@ -296,6 +298,7 @@ class DbtActivities:
 
     @activity.defn(name="dbt_debug")
     async def debug(self, run_params: OperationRequest) -> bool:
+        """Handles calls from the workflow to to `dbt_debug` activity"""
         self._reset_path()
         return dbt_debug(
             run_params.env,
@@ -305,6 +308,7 @@ class DbtActivities:
 
     @activity.defn(name="dbt_clean")
     async def clean(self, run_params: OperationRequest) -> bool:
+        """Handles calls from the workflow to to `dbt_clean` activity"""
         self._reset_path()
         return dbt_clean(
             run_params.env,
@@ -314,6 +318,7 @@ class DbtActivities:
 
     @activity.defn(name="dbt_deps")
     async def deps(self, run_params: OperationRequest) -> bool:
+        """Handles calls from the workflow to to `dbt_deps` activity"""
         self._reset_path()
         return dbt_deps(
             run_params.env,
@@ -323,6 +328,7 @@ class DbtActivities:
 
     @activity.defn(name="dbt_test")
     async def test(self, run_params: OperationRequest) -> bool:
+        """Handles calls from the workflow to to `dbt_test` activity"""
         self._reset_path()
         return dbt_test(
             run_params.env,
@@ -332,6 +338,7 @@ class DbtActivities:
 
     @activity.defn(name="dbt_test_source")
     async def test_source(self, run_params: OperationRequest) -> bool:
+        """Handles calls from the workflow to to `dbt_test_source` activity"""
         self._reset_path()
         return dbt_test(
             run_params.env,
