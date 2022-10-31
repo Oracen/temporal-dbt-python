@@ -24,7 +24,7 @@ op_request = OperationRequest("dev", "./test")
 
 
 @mock.patch("temporal_dbt_python.activities.dbt_handler", return_value=results_success)
-class TestTemporalFunctionality(unittest.TestCase):
+class TestActivities(unittest.TestCase):
     def test_parse_output(self, mock_handler):
         from temporal_dbt_python.activities import parse_output
 
