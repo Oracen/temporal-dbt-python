@@ -1,7 +1,7 @@
 package main
 
 import (
-	app "example/go-temporal-worker"
+	app "example/go-temporal-worker/src/temporal_dbt_polyglot"
 	"flag"
 	"log"
 
