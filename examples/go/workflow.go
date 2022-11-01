@@ -46,7 +46,7 @@ func DbtParallelRefreshWorkflow(
 					StartToCloseTimeout: time.Second * 30,
 				},
 			)
-			stepIdentifier := runParams.Env + "--" + *runParams.ProfileLocation + "--" + task
+			stepIdentifier := runParams.Env + "--" + runParams.ProjectLocation + "--" + task
 			workflow.ExecuteActivity(ctx, AlertErrorActivity, stepIdentifier)
 			return false, errors.New("Workflow failed at step " + stepIdentifier)
 		}
@@ -58,7 +58,7 @@ func DbtParallelRefreshWorkflow(
 			StartToCloseTimeout: time.Second * 5,
 		},
 	)
-	stepIdentifier := runParams.Env + "--" + *runParams.ProfileLocation + "--completed"
+	stepIdentifier := runParams.Env + "--" + runParams.ProjectLocation + "--completed"
 	workflow.ExecuteActivity(ctx, AlertSuccessActivity, stepIdentifier)
 	return true, nil
 }
