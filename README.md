@@ -1,6 +1,6 @@
 # temporal-dbt-python
 
-A Temporal Workflow and worker for automating DBT operations
+A Temporal Workflow and worker for automating DBT operations. Primarily used for Python, I include a quick Go workflow + worker as Go's Temporal SDK is a bit more complete.
 
 ## Project Description
 
