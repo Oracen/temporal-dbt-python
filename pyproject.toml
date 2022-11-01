@@ -1,6 +1,6 @@
 [tool.poetry]
 authors = ["Oracen <alex.stenlake@gmail.com>"]
-description = "A tool for"
+description = "Tooling for running DBT jobs in temporal"
 license = "MIT"
 name = "temporal_dbt_python"
 readme = "README.md"
@@ -27,6 +27,10 @@ postgres = ["dbt-postgres"]
 redshift = ["dbt-redshift"]
 snowflake = ["dbt-snowflake"]
 spark = ["dbt-spark"]
+
+[tool.poetry.group.dev.dependencies]
+isort = "^5.10.1"
+pre-commit = "^2.20.0"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
