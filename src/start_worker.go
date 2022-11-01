@@ -19,7 +19,11 @@ func main() {
 	}
 	defer temporalClient.Close()
 
-	workerInstance := worker.New(temporalClient, "dbt-update-operations", worker.Options{})
+	workerInstance := worker.New(
+		temporalClient,
+		"dbt-update-operations",
+		worker.Options{EnableSessionWorker: true},
+	)
 
 	workerInstance.RegisterWorkflow(app.DbtParallelRefreshWorkflow)
 

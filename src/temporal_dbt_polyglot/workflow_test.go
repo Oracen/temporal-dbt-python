@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/testsuite"
+	"go.temporal.io/sdk/worker"
 )
 
 func mockActivity(_ RunParams) (bool, error) {
@@ -24,6 +25,9 @@ func Test_Workflow_Success(t *testing.T) {
 	}
 	testSuite := &testsuite.WorkflowTestSuite{}
 	env := testSuite.NewTestWorkflowEnvironment()
+	env.SetWorkerOptions(worker.Options{
+		EnableSessionWorker: true,
+	})
 
 	successInput := RunParams{"dev", "./test", nil}
 	for _, task := range tasks {

@@ -28,37 +28,48 @@ func DbtParallelRefreshWorkflow(
 	}
 	// Set up basic worker
 	slowResetConfig := workflow.ActivityOptions{
-		StartToCloseTimeout: time.Second * 600,
+		StartToCloseTimeout: time.Minute * 10,
 	}
-	ctx = workflow.WithActivityOptions(ctx, slowResetConfig)
-	defer workflow.ExecuteActivity(ctx, "dbt_clean", runParams)
+	sessionOptions := &workflow.SessionOptions{
+		CreationTimeout:  time.Minute,
+		ExecutionTimeout: time.Minute * 60,
+	}
+	sessionCtx, err := workflow.CreateSession(ctx, sessionOptions)
+	if err != nil {
+		return false, err
+	}
+	defer workflow.CompleteSession(sessionCtx)
+	sessionCtx = workflow.WithActivityOptions(sessionCtx, slowResetConfig)
+
+	// Guarantee cleanup is attempted
+	defer workflow.ExecuteActivity(sessionCtx, "dbt_clean", runParams)
 
 	// Iterate over tasks
 	for _, task := range tasks {
 		var result bool
-		err := workflow.ExecuteActivity(ctx, task, runParams).Get(ctx, &result)
+		err := workflow.ExecuteActivity(sessionCtx, task, runParams).Get(sessionCtx, &result)
 		fmt.Println("Python worker at step " + task + " returned " + fmt.Sprintf("%v", result))
 		if err != nil {
 			// On error, alert and exit
-			ctx = workflow.WithActivityOptions(
-				ctx,
+			sessionCtx = workflow.WithActivityOptions(
+				sessionCtx,
 				workflow.ActivityOptions{
 					StartToCloseTimeout: time.Second * 30,
 				},
 			)
 			stepIdentifier := runParams.Env + "--" + runParams.ProjectLocation + "--" + task
-			workflow.ExecuteActivity(ctx, AlertErrorActivity, stepIdentifier)
+			workflow.ExecuteActivity(sessionCtx, AlertErrorActivity, stepIdentifier)
 			return false, errors.New("Workflow failed at step " + stepIdentifier)
 		}
 	}
 	// Alert success
-	ctx = workflow.WithActivityOptions(
-		ctx,
+	sessionCtx = workflow.WithActivityOptions(
+		sessionCtx,
 		workflow.ActivityOptions{
 			StartToCloseTimeout: time.Second * 5,
 		},
 	)
 	stepIdentifier := runParams.Env + "--" + runParams.ProjectLocation + "--completed"
-	workflow.ExecuteActivity(ctx, AlertSuccessActivity, stepIdentifier)
+	workflow.ExecuteActivity(sessionCtx, AlertSuccessActivity, stepIdentifier)
 	return true, nil
 }
