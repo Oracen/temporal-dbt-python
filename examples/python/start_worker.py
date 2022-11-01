@@ -13,7 +13,8 @@ def dummy_callback(input_str):
     return True  # Signals that the callback fired successfully
 
 
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+print(f"Project root is {str(PROJECT_ROOT.absolute())}")
 
 
 async def main(client_address: str, tasks_only: bool = False):
