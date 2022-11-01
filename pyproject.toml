@@ -1,6 +1,6 @@
 [tool.poetry]
 authors = ["Oracen <alex.stenlake@gmail.com>"]
-description = "Tooling for running DBT jobs in temporal"
+description = "Tooling for running DBT jobs in Temporal"
 license = "MIT"
 name = "temporal_dbt_python"
 readme = "README.md"
