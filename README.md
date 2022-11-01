@@ -79,11 +79,14 @@ To create a new Python workflow that runs a debug check,
 
 ## Requirements
 
+- `python >= 3.7.2`
 - `poetry >= 1.2.0`
 - `temporal >= 1.18.0`
 - `dbt >= 1.0.0`
 
 To run the Go worker, be sure you have golang installed.
+
+You'll also want a locally-running Temporal server to orchestrate the jobs. This could be [the official docker-compose](https://github.com/temporalio/docker-compose) or [Temporalite](https://github.com/temporalio/temporalite). You'll also want your favourite DB to connect to, and a ready-made DBT project to deploy to it.
 
 ## Usage
 
